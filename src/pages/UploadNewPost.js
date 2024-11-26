@@ -7,13 +7,33 @@ function UploadNewPost() {
     file: null,
   });
 
+  const [error, setError] = useState('');
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'file') {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: e.target.files[0], // For file upload
-      }));
+      const file = e.target.files[0];
+
+      // File type and size validation
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/avi'];
+      const maxSize = 5 * 1024 * 1024 * 1024; // 5GB in bytes
+
+      if (file) {
+        // Check if file type is valid
+        if (!allowedTypes.includes(file.type)) {
+          setError('Invalid file type. Only JPEG, PNG, GIF, MP4, and AVI are allowed.');
+        }
+        // Check if file size is within the limit
+        else if (file.size > maxSize) {
+          setError('File size is too large. Maximum size allowed is 5GB.');
+        } else {
+          setFormData((prevData) => ({
+            ...prevData,
+            [name]: file,
+          }));
+          setError(''); // Clear error if valid
+        }
+      }
     } else {
       setFormData((prevData) => ({
         ...prevData,
@@ -24,6 +44,12 @@ function UploadNewPost() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // File must be selected for upload
+    if (!formData.file) {
+      setError('Please select a file to upload');
+      return;
+    }
 
     // Create a new FormData object
     const data = new FormData();
@@ -40,11 +66,18 @@ function UploadNewPost() {
       const result = await response.json();
       if (result.success) {
         console.log('Post uploaded successfully');
+        setFormData({
+          title: '',
+          description: '',
+          file: null,
+        });
+        setError('');
       } else {
-        console.error('Failed to upload post');
+        setError(result.message || 'Failed to upload post');
       }
     } catch (error) {
       console.error('Error during upload:', error);
+      setError('Error during upload');
     }
   };
 
@@ -90,6 +123,7 @@ function UploadNewPost() {
             onChange={handleChange}
             required
           />
+          {error && <p className="text-danger">{error}</p>}
         </div>
 
         <div className="text-center">
